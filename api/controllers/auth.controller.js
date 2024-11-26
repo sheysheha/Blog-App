@@ -36,34 +36,47 @@ export const signup = async (req, res, next) => {
 export const signin = async (req, res, next) => {
   const { email, password } = req.body;
 
+  // Validate input
   if (!email || !password || email === '' || password === '') {
-    next(errorHandler(400, 'All fields are required'));
+    return next(errorHandler(400, 'All fields are required'));
   }
 
   try {
+    // Find user by email
     const validUser = await User.findOne({ email });
     if (!validUser) {
       return next(errorHandler(404, 'User not found'));
     }
-    const validPassword = bcryptjs.compareSync(password, validUser.password);
+
+    // Check password
+    const validPassword = await bcryptjs.compare(password, validUser.password);
     if (!validPassword) {
       return next(errorHandler(400, 'Invalid password'));
     }
+
+    // Create JWT token
     const token = jwt.sign(
       { id: validUser._id, isAdmin: validUser.isAdmin },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }  // Optionally set an expiration time
     );
 
+    // Remove password from user object
     const { password: pass, ...rest } = validUser._doc;
 
-    res
+    // Send response with JWT cookie
+    return res
       .status(200)
       .cookie('access_token', token, {
         httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',  // Ensure secure flag in production
+        sameSite: 'strict',  // Restrict cross-site requests
+        maxAge: 3600000  // 1 hour cookie expiration
       })
-      .json(rest);
+      .json({ success: true, user: rest });
   } catch (error) {
-    next(error);
+    console.error('Error during sign-in:', error);
+    next(error);  // Pass the error to error handling middleware
   }
 };
 

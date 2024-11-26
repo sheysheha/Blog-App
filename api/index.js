@@ -7,6 +7,7 @@ import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import cors from 'cors';  // Import the CORS package
 
 dotenv.config();
 
@@ -22,6 +23,9 @@ mongoose
 const __dirname = path.resolve();
 
 const app = express();
+
+// Enable CORS with your frontend origin
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 
 app.use(express.json());
 app.use(cookieParser());
